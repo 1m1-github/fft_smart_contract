@@ -63,7 +63,7 @@ pub struct Schedule {
 impl Default for FFT {
     fn default() -> Self {
         Self {
-            per_b: LookupMap::new(b"accounts".to_vec()),
+            per_b: LookupMap::new(b"per_b".to_vec()),
         }
     }
 }
@@ -187,6 +187,32 @@ impl FFT {
             }
             None => {
                 env::panic_str("no per_b")
+            }
+        }
+    }
+
+    // view
+    pub fn view(&self, a: AccountId, b: AccountId, ft: AccountId) -> String {
+        match self.per_b.get(&b) {
+            Some(per_ft) => {
+                match per_ft.get(&ft) {
+                    Some(per_a) => {
+                        match per_a.get(&a) {
+                            Some(schedule) => {
+                                return format!("{}-{}-{} * {}/{}", schedule.begin, schedule.last_take, schedule.end, schedule.taken_balance, schedule.available_balance);
+                            }
+                            None => {
+                                return "a not found".to_string();
+                            }
+                        }
+                    }
+                    None => {
+                        return "ft not found".to_string();
+                    }
+                }
+            }
+            None => {
+                return "b not found".to_string();
             }
         }
     }
