@@ -4,13 +4,29 @@
 
 // ./build.sh
 
+// account
 // near account create-account sponsor-by-faucet-service fairfungibletoken.testnet autogenerate-new-keypair save-to-keychain network-config testnet create
+
+// deploy
 // near contract deploy fairfungibletoken.testnet use-file target/wasm32-unknown-unknown/release/fft.wasm without-init-call network-config testnet sign-with-keychain
 
+// view
 // near contract view-storage fairfungibletoken.testnet all as-json network-config testnet
 
-// near contract call-function as-transaction ref.fakes.testnet ft_transfer_call json-args '{"receiver_id": "fairfungibletoken.testnet", "amount": "3000000000000000000", "msg": "1mm1.testnet,1706390785000000,1769549181000000,lin"}' prepaid-gas '100.0 Tgas' attached-deposit '0.000000000000000000000001 NEAR' sign-as 1m1.testnet network-config testnet sign-with-keychain send
+// register
 // near contract call-function as-transaction ref.fakes.testnet storage_deposit json-args '{"account_id": "fairfungibletoken.testnet"}' prepaid-gas '100.0 Tgas' attached-deposit '0.00125 NEAR' sign-as fairfungibletoken.testnet network-config testnet sign-with-keychain send
+
+// create
+// near contract call-function as-transaction ref.fakes.testnet ft_transfer_call json-args '{"receiver_id": "fairfungibletoken.testnet", "amount": "3000000000000000000", "msg": "1mm1.testnet,1706369099063000000,1706455499063000064,lin"}' prepaid-gas '100.0 Tgas' attached-deposit '0.000000000000000000000001 NEAR' sign-as 1m1.testnet network-config testnet sign-with-keychain send
+
+// take
+// near contract call-function as-transaction fairfungibletoken.testnet take json-args '{"a": "1m1.testnet", "b": "1mm1.testnet", "ft": "ref.fakes.testnet"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as 1m1.testnet network-config testnet sign-with-keychain send
+
+// clear
+// near contract call-function as-transaction fairfungibletoken.testnet clear json-args '{"b": "1mm1.testnet"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as 1m1.testnet network-config testnet sign-with-keychain send
+
+// view
+// near contract call-function as-read-only fairfungibletoken.testnet view json-args '{"a": "1m1.testnet", "b": "1mm1.testnet", "ft": "ref.fakes.testnet"}' network-config testnet now
 
 // Find all our documentation at https://docs.near.org
 use near_contract_standards::fungible_token::core::ext_ft_core::ext;
@@ -87,21 +103,21 @@ fn convert(balance: u128) -> U128 {
 impl FFT {
     // create or add
     pub fn ft_on_transfer(& mut self, sender_id: String, amount: String, msg: String) -> String {
-        log_str("hi");
+        // log_str("hi");
 
         let a = str_to_account_id(&sender_id);
 
         let mut parts = msg.split(',');
 
         let b_str = parts.next().unwrap_or_default();
-        log_str(&format!("b_str: {b_str}"));
+        // log_str(&format!("b_str: {b_str}"));
         let b = str_to_account_id(b_str);
-        log_str(&format!("b: {b}"));
+        // log_str(&format!("b: {b}"));
 
         let begin_str = parts.next().unwrap_or_default();
-        log_str(&format!("begin_str: {begin_str}"));
+        // log_str(&format!("begin_str: {begin_str}"));
         let begin: u64 = begin_str.parse().expect("begin_str not a valid timestamp");
-        log_str(&format!("begin: {begin}"));
+        // log_str(&format!("begin: {begin}"));
 
         let end_str = parts.next().unwrap_or_default();
         let end: u64 = end_str.parse().expect("end_str not a valid timestamp");
@@ -170,6 +186,11 @@ impl FFT {
 
     // pub fn cancel(&mut self, b: AccountId, ft: AccountId) {} // todo
 
+    // clear DEBUG
+    pub fn clear(&mut self, b: AccountId) {
+        self.per_b.remove(&b);
+    }
+
     // take
     pub fn take(&mut self, a: AccountId, b: AccountId, ft: AccountId) {
         log_str(&format!("a: {a}"));
@@ -181,27 +202,49 @@ impl FFT {
                     Some(per_a) => {
                         match per_a.get(&a) {
                             Some(schedule) => {
+                                log_str(&format!("schedule"));
+                                log_str(&schedule.begin.to_string());
+                                log_str(&schedule.end.to_string());
+                                log_str(&schedule.last_take.to_string());
+                                log_str(&schedule.taken_balance.to_string());
+                                log_str(&schedule.available_balance.to_string());
+
                                 // math
                                 let total_balance =
                                     schedule.available_balance + schedule.taken_balance;
+                                log_str(&total_balance.to_string());
                                 let elapsed = env::block_timestamp() - schedule.begin;
+                                log_str(&elapsed.to_string());
                                 let total_time = schedule.end - schedule.begin;
+                                log_str(&total_time.to_string());
                                 let time_fraction = elapsed as f64 / total_time as f64;
+                                log_str(&time_fraction.to_string());
                                 let can_be_taken_balance =
                                     (time_fraction * total_balance as f64) as Balance;
+                                log_str(&can_be_taken_balance.to_string());
                                 let take_amount = can_be_taken_balance - schedule.taken_balance;
+                                log_str(&take_amount.to_string());
 
                                 // send
                                 let memo = None;
-                                ext(ft).ft_transfer(b, convert(take_amount), memo);
+                                ext(ft).with_attached_deposit(1).ft_transfer(b, convert(take_amount), memo);
                             }
-                            None => env::panic_str("no per_a"),
+                            None => {
+                                log_str(&format!("no per_a"));
+                                env::panic_str("no per_a")
+                            },
                         }
                     }
-                    None => env::panic_str("no per_ft"),
+                    None => {
+                        log_str(&format!("no per_ft"));
+                        env::panic_str("no per_ft")
+                    },
                 }
             }
-            None => env::panic_str("no per_b"),
+            None => {
+                log_str(&format!("no per_b"));
+                env::panic_str("no per_b")
+            },
         }
     }
 
