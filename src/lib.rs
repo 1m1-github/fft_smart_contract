@@ -45,11 +45,10 @@ impl FromStr for ScheduleType {
     }
 }
 
-
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Schedule {
-    pub begin: u64, // timestamp
-    pub last_take: u64, // timestamp
+    pub begin: u64,       // timestamp
+    pub last_take: u64,   // timestamp
     pub end: u64,         // timestamp
     pub balance: Balance, // at beginning
     pub t: ScheduleType,
@@ -94,42 +93,48 @@ impl FFT {
 
         let ft = env::predecessor_account_id();
 
+        let schedule = Schedule {
+            begin: begin,
+            last_take: begin,
+            end: end,
+            balance: amount,
+            t: t,
+        };
+
         match self.per_beneficiary.get(&b) {
-            Some(per_ft) => {
+            Some(mut per_ft) => {
                 match per_ft.get(&ft) {
-                    Some(per_a) =>  {
+                    Some(mut per_a) => {
                         match per_a.get(&a) {
                             Some(schedule) => {
                                 // add
-                            },
+                            }
                             None => {
                                 // create
-                            },
+                                per_a.insert(&a, &schedule);
+                            }
                         }
-                    },
+                    }
                     None => {
                         // create
-                    },
+                        let mut per_a: LookupMap<AccountId, Schedule> =
+                            LookupMap::new(b"per_a".to_vec());
+                        per_a.insert(&a, &schedule);
+                        per_ft.insert(&ft, &per_a);
+                    }
                 }
             }
             None => {
                 // create
-                let schedule = Schedule {
-                    begin: begin,
-                    last_take: begin,
-                    end: end,
-                    balance: amount,
-                    t: t,
-                };
-
                 let mut per_a: LookupMap<AccountId, Schedule> = LookupMap::new(b"per_a".to_vec());
                 per_a.insert(&a, &schedule);
 
-                let mut per_ft: LookupMap<AccountId, LookupMap<AccountId, Schedule>> = LookupMap::new(b"per_ft".to_vec());
+                let mut per_ft: LookupMap<AccountId, LookupMap<AccountId, Schedule>> =
+                    LookupMap::new(b"per_ft".to_vec());
                 per_ft.insert(&ft, &per_a);
 
                 self.per_beneficiary.insert(&b, &per_ft);
-            },
+            }
         }
 
         return PromiseOrValue::Value(U128(0));
