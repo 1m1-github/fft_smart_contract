@@ -147,8 +147,9 @@ impl FFT {
         return PromiseOrValue::Value(U128(0));
     }
 
-    pub fn cancel(&mut self, b: AccountId, ft: AccountId) {}
-    // Public method - accepts a greeting, such as "howdy", and records it
+    // pub fn cancel(&mut self, b: AccountId, ft: AccountId) {} // todo
+
+    // take
     pub fn take(&mut self, a: AccountId, b: AccountId, ft: AccountId) {
         log_str(&format!("a: {a}"));
         log_str(&format!("b: {b}"));
