@@ -10,6 +10,7 @@ use near_sdk::json_types::U128;
 use near_sdk::near_bindgen;
 use near_sdk::{env, PromiseOrValue};
 use near_sdk::{AccountId, Balance};
+// use near_contract_standards::fungible_token::core::ext_ft_core::ext;
 
 use std::str::FromStr;
 
@@ -18,7 +19,7 @@ use std::str::FromStr;
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct FFT {
     // b -> ft -> a -> schedule
-    pub per_beneficiary: LookupMap<AccountId, LookupMap<AccountId, LookupMap<AccountId, Schedule>>>,
+    pub per_b: LookupMap<AccountId, LookupMap<AccountId, LookupMap<AccountId, Schedule>>>,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -50,7 +51,8 @@ pub struct Schedule {
     pub begin: u64,       // timestamp
     pub last_take: u64,   // timestamp
     pub end: u64,         // timestamp
-    pub balance: Balance, // at beginning
+    pub available_balance: Balance,
+    pub taken_balance: Balance,
     pub t: ScheduleType,
 }
 
@@ -58,7 +60,7 @@ pub struct Schedule {
 impl Default for FFT {
     fn default() -> Self {
         Self {
-            per_beneficiary: LookupMap::new(b"accounts".to_vec()),
+            per_b: LookupMap::new(b"accounts".to_vec()),
         }
     }
 }
@@ -70,6 +72,7 @@ fn str_to_account_id(s: &str) -> AccountId {
 // Implement the contract structure
 #[near_bindgen]
 impl FFT {
+    
     // create or add
     pub fn ft_on_transfer(
         &mut self,
@@ -97,17 +100,18 @@ impl FFT {
             begin: begin,
             last_take: begin,
             end: end,
-            balance: amount,
+            available_balance: amount,
+            taken_balance: 0,
             t: t,
         };
 
-        match self.per_beneficiary.get(&b) {
+        match self.per_b.get(&b) {
             Some(mut per_ft) => {
                 match per_ft.get(&ft) {
                     Some(mut per_a) => {
                         match per_a.get(&a) {
                             Some(schedule) => {
-                                // add
+                                // todo add
                             }
                             None => {
                                 // create
@@ -133,43 +137,47 @@ impl FFT {
                     LookupMap::new(b"per_ft".to_vec());
                 per_ft.insert(&ft, &per_a);
 
-                self.per_beneficiary.insert(&b, &per_ft);
+                self.per_b.insert(&b, &per_ft);
             }
         }
 
         return PromiseOrValue::Value(U128(0));
     }
 
-    pub fn create(&mut self, beneficiary: AccountId, ft: AccountId) {}
-    pub fn cancel(&mut self, beneficiary: AccountId, ft: AccountId) {}
-    pub fn add(&mut self, beneficiary: AccountId, ft: AccountId) {}
+    pub fn cancel(&mut self, b: AccountId, ft: AccountId) {}
     // Public method - accepts a greeting, such as "howdy", and records it
-    pub fn take(&mut self, benefactor: AccountId, beneficiary: AccountId, ft: AccountId) {
-        log_str(&format!("benefactor: {benefactor}"));
-        log_str(&format!("beneficiary: {beneficiary}"));
+    pub fn take(&mut self, a: AccountId, b: AccountId, ft: AccountId) {
+        log_str(&format!("a: {a}"));
+        log_str(&format!("b: {b}"));
         log_str(&format!("ft: {ft}"));
-        match self.per_beneficiary.get(&beneficiary) {
-            Some(per_benefactor) => {
-                match per_benefactor.get(&benefactor) {
-                    Some(per_ft) => {
-                        match per_ft.get(&ft) {
+        match self.per_b.get(&b) {
+            Some(per_ft) => {
+                match per_ft.get(&ft) {
+                    Some(per_a) => {
+                        match per_a.get(&a) {
                             Some(schedule) => {
                                 // todo math + send
+                                let total_balance = schedule.available_balance + schedule.taken_balance;
+                                let elapsed = env::block_timestamp() - schedule.begin;
+                                let total_time = schedule.end - schedule.begin;
+                                let time_fraction = elapsed as f64 / total_time as f64;
+                                let can_be_taken_balance = (time_fraction * total_balance as f64) as Balance;
+                                let take_amount = can_be_taken_balance - schedule.taken_balance;
+                                
+                                // ext()
                             }
                             None => {
-                                log_str(&format!("no per_ft"));
+                                env::panic_str("no per_a")
                             }
                         }
                     }
                     None => {
-                        log_str(&format!("no per_ft"));
+                        env::panic_str("no per_ft")
                     }
                 }
             }
             None => {
-                log_str(&format!("no per_benefactor"));
-                // env::panic_str("")
-                // env::panic_str(format!("The account {} is not registered", &account_id).as_str())
+                env::panic_str("no per_b")
             }
         }
     }
