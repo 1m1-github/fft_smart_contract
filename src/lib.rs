@@ -10,7 +10,7 @@ use near_sdk::json_types::U128;
 use near_sdk::near_bindgen;
 use near_sdk::{env, PromiseOrValue};
 use near_sdk::{AccountId, Balance};
-// use near_contract_standards::fungible_token::core::ext_ft_core::ext;
+use near_contract_standards::fungible_token::core::ext_ft_core::ext;
 
 use std::str::FromStr;
 
@@ -67,6 +67,9 @@ impl Default for FFT {
 
 fn str_to_account_id(s: &str) -> AccountId {
     s.parse().expect("Invalid AccountId")
+}
+fn convert(balance: u128) -> U128 {
+    U128(balance)
 }
 
 // Implement the contract structure
@@ -156,7 +159,7 @@ impl FFT {
                     Some(per_a) => {
                         match per_a.get(&a) {
                             Some(schedule) => {
-                                // todo math + send
+                                // math
                                 let total_balance = schedule.available_balance + schedule.taken_balance;
                                 let elapsed = env::block_timestamp() - schedule.begin;
                                 let total_time = schedule.end - schedule.begin;
@@ -164,7 +167,9 @@ impl FFT {
                                 let can_be_taken_balance = (time_fraction * total_balance as f64) as Balance;
                                 let take_amount = can_be_taken_balance - schedule.taken_balance;
                                 
-                                // ext()
+                                // send
+                                let memo = None;
+                                ext(ft).ft_transfer(b, convert(take_amount), memo);
                             }
                             None => {
                                 env::panic_str("no per_a")
