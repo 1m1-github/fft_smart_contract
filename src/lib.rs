@@ -2,6 +2,9 @@
 // a = benefactor
 // b = beneficiary
 
+// near account create-account sponsor-by-faucet-service fft.testnet autogenerate-new-keypair save-to-keychain network-config testnet create
+// near contract deploy fft.testnet use-file <route_to_wasm> without-init-call network-config testnet sign-with-keychain
+
 // Find all our documentation at https://docs.near.org
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LookupMap;

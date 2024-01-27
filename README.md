@@ -1,4 +1,6 @@
-# Hello NEAR Contract
+# FFT (Fair Fungible Token) NEAR Contract
+
+[THE BELOW IS FROM THE TEMPLATE]
 
 The smart contract exposes two methods to enable storing and retrieving a greeting in the NEAR network.
 
