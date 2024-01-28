@@ -203,6 +203,7 @@ impl FFT {
                         match per_a.get(&a) {
                             Some(schedule) => {
                                 log_str(&format!("schedule"));
+                                log_str(&env::block_timestamp().to_string());
                                 log_str(&schedule.begin.to_string());
                                 log_str(&schedule.end.to_string());
                                 log_str(&schedule.last_take.to_string());
