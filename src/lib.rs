@@ -7,6 +7,9 @@
 // account
 // near account create-account sponsor-by-faucet-service fairfungibletoken.testnet autogenerate-new-keypair save-to-keychain network-config testnet create
 
+// keys
+// near account list-keys fairfungibletoken.testnet network-config testnet now
+
 // deploy
 // near contract deploy fairfungibletoken.testnet use-file target/wasm32-unknown-unknown/release/fft.wasm without-init-call network-config testnet sign-with-keychain
 
